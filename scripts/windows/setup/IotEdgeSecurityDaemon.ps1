@@ -352,7 +352,7 @@ function Get-SecurityDaemon {
             $deleteEdgeArchive = $true
             Write-Host 'Downloading the latest version of IoT Edge security daemon...'
             Invoke-WebRequest `
-                -Uri 'https://aka.ms/iotedged-windows-latest' `
+                -Uri 'https://aka.ms/iotedged-windows-preview' `
                 -OutFile $ArchivePath `
                 -UseBasicParsing `
                 -Proxy $Proxy
