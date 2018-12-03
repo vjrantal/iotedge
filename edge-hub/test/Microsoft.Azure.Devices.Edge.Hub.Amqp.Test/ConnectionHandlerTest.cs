@@ -22,11 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Arrange
             var identity = Mock.Of<IIdentity>();
             var connectionPovider = Mock.Of<IConnectionProvider>();
+            var amqpConnection = Mock.Of<IAmqpConnection>();
 
             // Act / Assert
-            Assert.NotNull(new ClientConnectionHandler(identity, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(null, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(identity, null));
+            Assert.NotNull(new ClientConnectionHandler(identity, connectionPovider, amqpConnection));
+            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(null, connectionPovider, amqpConnection));
+            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(identity, null, amqpConnection));
         }
 
         [Fact]
@@ -38,9 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
+            var amqpConnection = Mock.Of<IAmqpConnection>();
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             // Act
             var tasks = new List<Task<IDeviceListener>>();
@@ -71,10 +73,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
-
+            var amqpConnection = Mock.Of<IAmqpConnection>();
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
             
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var c2DLinkHandler = new Mock<ISendingLinkHandler>();
@@ -107,10 +109,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
-
+            var amqpConnection = Mock.Of<IAmqpConnection>();
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var moduleMessageLinkHandler = new Mock<ISendingLinkHandler>();
@@ -143,10 +145,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
-
+            var amqpConnection = Mock.Of<IAmqpConnection>();
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var methodSendingLinkHandler = new Mock<ISendingLinkHandler>();
@@ -179,10 +181,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
-
+            var amqpConnection = Mock.Of<IAmqpConnection>();
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var twinSendingLinkHandler = new Mock<ISendingLinkHandler>();
@@ -213,8 +215,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener.Object));
             deviceListener.Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()));
+            var amqpConnection = Mock.Of<IAmqpConnection>();
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             var eventsLinkHandler = Mock.Of<ILinkHandler>(l => l.Type == LinkType.Events);
             string twinCorrelationId = Guid.NewGuid().ToString();

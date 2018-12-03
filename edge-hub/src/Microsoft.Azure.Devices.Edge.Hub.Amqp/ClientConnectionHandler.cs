@@ -27,12 +27,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly AsyncLock initializationLock = new AsyncLock();
         readonly AsyncLock registryUpdateLock = new AsyncLock();
         readonly IConnectionProvider connectionProvider;
+        readonly IAmqpConnection amqpConnection;
         Option<IDeviceListener> deviceListener = Option.None<IDeviceListener>();
 
-        public ClientConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider)
+        public ClientConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider, IAmqpConnection amqpConnection)
         {
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
+            this.amqpConnection = Preconditions.CheckNotNull(amqpConnection, nameof(amqpConnection));
         }
 
         public Task<IDeviceListener> GetDeviceListener()
@@ -116,20 +118,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     this.registry.Remove(linkHandler.Type);
                     if (this.registry.Count == 0)
                     {
-                        await this.CloseConnection();
+                        await this.CloseEdgeHubConnection();
                     }
                 }
             }
         }
 
-        Task CloseAllLinks()
+        async Task CloseAmqpConnection()
         {
             IList<ILinkHandler> links = this.registry.Values.ToList();
             IEnumerable<Task> closeTasks = links.Select(l => l.CloseAsync(Constants.DefaultTimeout));
-            return Task.WhenAll(closeTasks);
+            await Task.WhenAll(closeTasks);
+            await this.amqpConnection.Close();            
         }
 
-        async Task CloseConnection()
+        async Task CloseEdgeHubConnection()
         {
             using (await this.initializationLock.LockAsync())
             {
@@ -153,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 if (this.isActive.GetAndSet(false))
                 {
                     Events.ClosingProxy(this.Identity, ex);
-                    return this.clientConnectionHandler.CloseAllLinks();
+                    return this.clientConnectionHandler.CloseAmqpConnection();
                 }
                 return Task.CompletedTask;
             }

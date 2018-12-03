@@ -11,13 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     {
         readonly ConcurrentDictionary<string, ClientConnectionHandler> connectionHandlers = new ConcurrentDictionary<string, ClientConnectionHandler>();
         readonly IConnectionProvider connectionProvider;
+        readonly IAmqpConnection amqpConnection;
 
-        public ClientConnectionsHandler(IConnectionProvider connectionProvider)
+        public ClientConnectionsHandler(IConnectionProvider connectionProvider, IAmqpConnection amqpConnection)
         {
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
+            this.amqpConnection = Preconditions.CheckNotNull(amqpConnection, nameof(amqpConnection));
         }
 
         public IConnectionHandler GetConnectionHandler(IIdentity identity) =>
-            this.connectionHandlers.GetOrAdd(identity.Id, i => new ClientConnectionHandler(identity, this.connectionProvider));
+            this.connectionHandlers.GetOrAdd(identity.Id, i => new ClientConnectionHandler(identity, this.connectionProvider, this.amqpConnection));
     }    
 }
