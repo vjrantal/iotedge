@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
             public static void Closed(LinkHandler handler)
             {
-                Log.LogInformation((int)EventIds.Closing, $"Closing link {handler.Type} for {handler.ClientId}");
+                Log.LogInformation((int)EventIds.Closing, $"Closing link {handler.Type} for {handler.ClientId} - {Environment.StackTrace}");
             }
 
             public static void Opened(LinkHandler handler)

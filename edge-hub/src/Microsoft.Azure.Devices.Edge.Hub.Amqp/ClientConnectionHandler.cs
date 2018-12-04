@@ -116,6 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     this.registry.Remove(linkHandler.Type);
                     if (this.registry.Count == 0)
                     {
+                        Events.AllLinksClosed(this.identity);
                         await this.CloseConnection();
                     }
                 }
@@ -131,6 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         async Task CloseConnection()
         {
+            Events.ClosingConnection(this.identity);
             using (await this.initializationLock.LockAsync())
             {
                 await this.deviceListener.ForEachAsync(d => d.CloseAsync());
@@ -259,7 +261,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 SendingTelemetryMessage,
                 SentMethodInvocation,
                 SendingDeriredPropertyUpdates,
-                SendingTwinUpdate
+                SendingTwinUpdate,
+                AllLinksClosed,
+                ClosingConnection
             }
 
             internal static void ClosingProxy(IIdentity identity, Exception ex)
@@ -305,6 +309,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             public static void SendingTwinUpdate(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.SendingTwinUpdate, $"Sending twin update to {identity.Id}");
+            }
+
+            public static void AllLinksClosed(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.AllLinksClosed, $"All links closed for client {identity.Id} on the AMQP connection");
+            }
+
+            public static void ClosingConnection(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ClosingConnection, $"Closing underlying AMQP connection for client {identity.Id}");
             }
         }
     }
