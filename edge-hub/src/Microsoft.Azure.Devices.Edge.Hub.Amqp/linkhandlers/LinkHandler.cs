@@ -98,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public async Task CloseAsync(TimeSpan timeout)
         {
-            await this.Link.CloseAsync(timeout);
-            Events.Closed(this);
+            Events.Closing(this);
+            await this.Link.CloseAsync(timeout);            
         }
 
         static class Events
@@ -113,9 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 Opened
             }
 
-            public static void Closed(LinkHandler handler)
+            public static void Closing(LinkHandler handler)
             {
                 Log.LogInformation((int)EventIds.Closing, $"Closing link {handler.Type} for {handler.ClientId}");
+            }
+
+            public static void Closed(LinkHandler handler)
+            {
+                Log.LogInformation((int)EventIds.Closing, $"Closed link {handler.Type} for {handler.ClientId}");
             }
 
             public static void Opened(LinkHandler handler)
