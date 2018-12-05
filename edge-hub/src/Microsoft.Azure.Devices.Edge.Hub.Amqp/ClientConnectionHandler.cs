@@ -136,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 Events.ClosingConnection(this.identity);
                 await this.deviceListener.ForEachAsync(d => d.CloseAsync());
+                await this.amqpConnection.Close();
             }
         }
 
