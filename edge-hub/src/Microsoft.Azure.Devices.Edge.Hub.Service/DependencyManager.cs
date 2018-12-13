@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
                 this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
                 this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
-                this.edgeDeviceHostName = this.configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
+                this.edgeDeviceHostName = this.configuration.GetValue(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
                 this.connectionString = Option.Some(edgeHubConnectionString);
             }
             else
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void RegisterAmqpModule(ContainerBuilder builder)
         {
             IConfiguration amqpSettings = this.configuration.GetSection("amqpSettings");
-            bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
+            bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, true);
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled));
         }
 
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
 
-            bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
+            bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, true);
 
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance));
