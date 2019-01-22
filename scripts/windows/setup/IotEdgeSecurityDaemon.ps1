@@ -838,7 +838,7 @@ function Install-Services {
             # dockerd needs two more slashes after the scheme
             $namedPipeUrl = $MobyNamedPipeUrl -replace 'npipe://\./pipe/', 'npipe:////./pipe/'
             New-Service -Name $MobyServiceName -BinaryPathName `
-                """$MobyInstallDirectory\dockerd.exe"" -H $namedPipeUrl --exec-opt isolation=process --run-service --service-name ""$MobyServiceName"" --data-root ""$MobyDataRootDirectory""" | Out-Null
+                """$MobyInstallDirectory\dockerd.exe"" -H $namedPipeUrl --exec-opt isolation=process --run-service --service-name ""$MobyServiceName"" --data-root ""$MobyDataRootDirectory"" --fixed-cidr=192.168.111.0/24" | Out-Null
             New-Service -Name $EdgeServiceName -BinaryPathName """$EdgeInstallDirectory\iotedged.exe"" -c ""$EdgeInstallDirectory\config.yaml""" -DependsOn $MobyServiceName | Out-Null
         }
     }
