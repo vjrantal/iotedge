@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Image = image?.Trim() ?? string.Empty;
             this.createOptions = string.IsNullOrWhiteSpace(createOptions)
                 ? new CreateContainerParameters()
-                : JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions);
+                : JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions) ?? new CreateContainerParameters();
         }
 
         public DockerConfig(string image, CreateContainerParameters createOptions)
