@@ -55,7 +55,7 @@ Defaults:
   --deployment               deployment json file
   --runtime-log-level        debug
   --clean_up_existing_device false
-  --proxy                    No proxy is used
+  --proxy                    no proxy is used
 ")]
     [HelpOption]
     class Program
@@ -159,18 +159,23 @@ Defaults:
                     ? Option.Some(new RegistryCredentials(address, user, password))
                     : Option.None<RegistryCredentials>();
 
+                (bool useProxy, string proxyUrl) = this.Proxy;
+                Option<string> proxy = useProxy
+                    ? Option.Some(proxyUrl)
+                    : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
+
+                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                    ? Option.Some(upstreamProtocol)
+                    : Option.None<UpstreamProtocolType>();
+
                 IBootstrapper bootstrapper;
                 switch (this.BootstrapperType)
                 {
                     case BootstrapperType.Iotedged:
-                        (bool useProxy, string proxyUrl) = this.Proxy;
-                        Option<string> proxy = useProxy
-                            ? Option.Some(proxyUrl)
-                            : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
-
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy, this.OfflineInstallationPath);
+                            bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy, upstreamProtocolOption, this.OfflineInstallationPath);
                         }
                         else
                         {
@@ -178,11 +183,6 @@ Defaults:
                             Option<HttpUris> uris = useHttp
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
-
-                            (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
-                            Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
-                                ? Option.Some(upstreamProtocol)
-                                : Option.None<UpstreamProtocolType>();
 
                             bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
                         }
@@ -213,6 +213,7 @@ Defaults:
                     connectionString,
                     endpoint,
                     this.UpstreamProtocol.Item2,
+                    proxy,
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
