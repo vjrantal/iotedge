@@ -1,17 +1,76 @@
 parameters:
   name: ''
   imageName: ''
-  namespace: 'microsoft'
+  namespace: $(namespace)
   project: ''
+  version: $(version)
+  codesign: 'false'
+  codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll'
 
 steps:
+  - ${{ if eq(parameters.codesign, 'true') }}:
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: '${{ parameters.name }} Code Sign'
+      inputs:
+        ConnectedServiceName: '$(codesign.serviceName)'
+        FolderPath: '$(Build.BinariesDirectory)/publish/${{ parameters.project }}'
+        Pattern: '${{ parameters.codesignPattern }}'
+        signConfigType: inlineSignParams
+        inlineOperation: |
+        [
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft"
+                },
+                {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com"
+                },
+                {
+                    "parameterName": "Append",
+                    "parameterValue": "/as"
+                },
+                {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd \"SHA256\""
+                },
+                {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                },
+                {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolVerify",
+                "parameters": [
+                {
+                    "parameterName": "VerifyAll",
+                    "parameterValue": "/all"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+        ]
+        SessionTimeout: 20
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }}
+      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -v ${{ parameters.version }} -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }}
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - arm32
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} --target-arch armv7l
+      arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -v ${{ parameters.version }} -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} --target-arch armv7l

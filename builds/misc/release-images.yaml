@@ -1,0 +1,222 @@
+trigger: none
+pr: none
+jobs:
+variables:
+  namespace: 'public'
+  codesign: 'true'
+  tags: "['1.0']"
+
+################################################################################
+  - job: linux
+################################################################################
+    displayName: Linux
+    pool:
+      name: Hosted Ubuntu 1604
+      vmImage: 'ubuntu-16.04'
+    variables:
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
+    steps:
+      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
+        name: install
+        displayName: Install dependencies
+
+      - script: scripts/linux/buildBranch.sh -c Release
+        name: build
+        displayName: Build (release)
+
+      # Edge Agent
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+          codesign: $(codesign)
+
+      # Edge Hub
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
+          codesign: $(codesign)
+
+      # Simulated Temperature Sensor
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
+          codesign: $(codesign)
+          codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll'
+
+      - ${{ if eq(codesign, 'true') }}:
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+          displayName: 'Functions Binding Code Sign'
+          inputs:
+            ConnectedServiceName: 'Azure IoT Edge Code Sign'
+            FolderPath: '$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub'
+            Pattern: 'Microsoft.Azure.WebJobs.Extensions*.dll'
+            signConfigType: inlineSignParams
+            inlineOperation: |
+            [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+            ]
+            SessionTimeout: 20
+
+      - task: DotNetCoreCLI@2
+        displayName: 'Functions Binding nuget package'
+        inputs:
+          command: pack
+          packagesToPack: '**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj'
+          packDirectory: '$(Build.BinariesDirectory)/publish/'
+          nobuild: true
+          versioningScheme: byEnvVar
+          versionEnvVar: version
+          buildProperties: 'OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub'
+
+      - ${{ if eq(codesign, 'true') }}:
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+          displayName: 'Functions Binding nuget package Sign'
+          inputs:
+            ConnectedServiceName: 'Azure IoT Edge Code Sign'
+            FolderPath: '$(Build.BinariesDirectory)/publish'
+            Pattern: 'Microsoft.Azure.WebJobs.Extensions*.nupkg'
+            signConfigType: inlineSignParams
+            inlineOperation: |
+            [
+                {
+                    "keyCode": "CP-401405",
+                    "operationSetCode": "NuGetSign",
+                    "parameters": [],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-401405",
+                    "operationSetCode": "NuGetVerify",
+                    "parameters": [],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+            ]
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
+
+################################################################################
+  - job: windows
+################################################################################
+    displayName: Windows
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands:
+        - Build-Image -equals true
+        - win-rs5
+    variables:
+      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
+    steps:
+      - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
+        name: install
+        displayName: Install
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
+        name: build
+        displayName: Build
+      - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
+        displayName: Docker Login
+
+      # Edge Agent
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+          codesign: $(codesign)
+
+      # Edge Hub
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
+          codesign: $(codesign)
+
+      # Simulated Temperature Sensor
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
+          codesign: $(codesign)
+          codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll'
+
+      - powershell: docker system prune -a -f
+        displayName: Clean Machine
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-windows'
+
+################################################################################
+  - job: manifest
+################################################################################
+    displayName: Manifest
+    pool:
+      vmImage: 'ubuntu-16.04'
+    dependsOn:
+      - linux
+      - windows
+    steps:
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n $(namespace) --tags "$(tags)"
+      displayName: 'Publish Edge Agent Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n $(namespace) --tags "$(tags)"
+      displayName: 'Publish Edge Hub Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n $(namespace) --tags "$(tags)"
+      displayName: 'Publish Temperature Sensor Manifest'
