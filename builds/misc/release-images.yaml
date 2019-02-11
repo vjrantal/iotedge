@@ -1,10 +1,10 @@
 trigger: none
 pr: none
-jobs:
 variables:
   namespace: 'microsoft'
   codesign: 'true'
   tags: "['1.0']"
+jobs:
 
 ################################################################################
   - job: linux
