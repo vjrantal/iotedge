@@ -30,7 +30,7 @@ jobs:
           name: Edge Agent
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
-          codesign: $(codesign)
+          codesign: '$(codesign)'
 
       # Edge Hub
       - template: templates/image-linux.yaml
@@ -38,7 +38,7 @@ jobs:
           name: Edge Hub
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
-          codesign: $(codesign)
+          codesign: '$(codesign)'
 
       # Simulated Temperature Sensor
       - template: templates/image-linux.yaml
@@ -46,7 +46,7 @@ jobs:
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
-          codesign: $(codesign)
+          codesign: '$(codesign)'
           codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll'
 
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
@@ -174,7 +174,7 @@ jobs:
           name: Edge Agent
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
-          codesign: $(codesign)
+          codesign: '$(codesign)'
 
       # Edge Hub
       - template: templates/image-windows.yaml
@@ -182,7 +182,7 @@ jobs:
           name: Edge Hub
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
-          codesign: $(codesign)
+          codesign: '$(codesign)'
 
       # Simulated Temperature Sensor
       - template: templates/image-windows.yaml
@@ -190,7 +190,7 @@ jobs:
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
-          codesign: $(codesign)
+          codesign: '$(codesign)'
           codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll'
 
       - powershell: docker system prune -a -f
