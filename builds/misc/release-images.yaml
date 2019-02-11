@@ -2,7 +2,7 @@ trigger: none
 pr: none
 jobs:
 variables:
-  namespace: 'public'
+  namespace: 'microsoft'
   codesign: 'true'
   tags: "['1.0']"
 
