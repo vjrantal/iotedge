@@ -18,52 +18,52 @@ steps:
         Pattern: '${{ parameters.codesignPattern }}'
         signConfigType: inlineSignParams
         inlineOperation: |
-        [
-            {
-                "keyCode": "CP-230012",
-                "operationSetCode": "SigntoolSign",
-                "parameters": [
-                {
-                    "parameterName": "OpusName",
-                    "parameterValue": "Microsoft"
-                },
-                {
-                    "parameterName": "OpusInfo",
-                    "parameterValue": "http://www.microsoft.com"
-                },
-                {
-                    "parameterName": "Append",
-                    "parameterValue": "/as"
-                },
-                {
-                    "parameterName": "FileDigest",
-                    "parameterValue": "/fd \"SHA256\""
-                },
-                {
-                    "parameterName": "PageHash",
-                    "parameterValue": "/NPH"
-                },
-                {
-                    "parameterName": "TimeStamp",
-                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                }
-                ],
-                "toolName": "sign",
-                "toolVersion": "1.0"
-            },
-            {
-                "keyCode": "CP-230012",
-                "operationSetCode": "SigntoolVerify",
-                "parameters": [
-                {
-                    "parameterName": "VerifyAll",
-                    "parameterValue": "/all"
-                }
-                ],
-                "toolName": "sign",
-                "toolVersion": "1.0"
-            }
-        ]
+          [
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolSign",
+                  "parameters": [
+                  {
+                      "parameterName": "OpusName",
+                      "parameterValue": "Microsoft"
+                  },
+                  {
+                      "parameterName": "OpusInfo",
+                      "parameterValue": "http://www.microsoft.com"
+                  },
+                  {
+                      "parameterName": "Append",
+                      "parameterValue": "/as"
+                  },
+                  {
+                      "parameterName": "FileDigest",
+                      "parameterValue": "/fd \"SHA256\""
+                  },
+                  {
+                      "parameterName": "PageHash",
+                      "parameterValue": "/NPH"
+                  },
+                  {
+                      "parameterName": "TimeStamp",
+                      "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              },
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolVerify",
+                  "parameters": [
+                  {
+                      "parameterName": "VerifyAll",
+                      "parameterValue": "/all"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              }
+          ]
         SessionTimeout: 20
   - powershell: scripts/windows/build/Publish-DockerImage.ps1 -Version "${{ parameters.version }}"  -Name "${{ parameters.imageName }}" -Project "${{ parameters.project }}" -Version $(Build.BuildNumber) -Registry $(registry.address) -Namespace "${{ parameters.namespace }}" -Push
     displayName: Build Image - ${{ parameters.name }} - amd64
