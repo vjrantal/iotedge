@@ -58,7 +58,7 @@ jobs:
     displayName: Install deb packages
     dependsOn: ubuntu_amd64
     pool:
-      vmImage: Hosted Ubuntu 1604
+      vmImage: 'ubuntu-16.04'
     steps:
     - task: DownloadBuildArtifacts@0
       displayName: 'Download Build Artifacts'
@@ -240,7 +240,7 @@ jobs:
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: 'ESRP CodeSigning'
         inputs:
-          ConnectedServiceName: 'Azure IoT Edge Code Sign'
+          ConnectedServiceName: '$(codesign.serviceName)'
           FolderPath: '$(build.artifactstagingdirectory)'
           Pattern: 'iothsm.dll,*.exe'
           CertificateId: 400

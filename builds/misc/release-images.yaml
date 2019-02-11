@@ -53,7 +53,7 @@ variables:
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: 'Functions Binding Code Sign'
           inputs:
-            ConnectedServiceName: 'Azure IoT Edge Code Sign'
+            ConnectedServiceName: '$(codesign.serviceName)'
             FolderPath: '$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub'
             Pattern: 'Microsoft.Azure.WebJobs.Extensions*.dll'
             signConfigType: inlineSignParams
@@ -121,7 +121,7 @@ variables:
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: 'Functions Binding nuget package Sign'
           inputs:
-            ConnectedServiceName: 'Azure IoT Edge Code Sign'
+            ConnectedServiceName: '$(codesign.serviceName)'
             FolderPath: '$(Build.BinariesDirectory)/publish'
             Pattern: 'Microsoft.Azure.WebJobs.Extensions*.nupkg'
             signConfigType: inlineSignParams
