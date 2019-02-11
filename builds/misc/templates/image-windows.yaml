@@ -3,7 +3,7 @@ parameters:
   imageName: ''
   namespace: $(namespace)
   project: ''
-  version: $(version)
+  version: $(Build.BuildNumber)
   arm32v7: 'true'
   codesign: 'false'
   codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll'

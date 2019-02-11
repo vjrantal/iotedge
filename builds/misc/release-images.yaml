@@ -29,6 +29,7 @@ jobs:
           name: Edge Agent
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: $(version)
           codesign: 'true'
 
       # Edge Hub
@@ -37,6 +38,7 @@ jobs:
           name: Edge Hub
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
+          version: $(version)
           codesign: 'true'
 
       # Simulated Temperature Sensor
@@ -45,6 +47,7 @@ jobs:
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
+          version: $(version)
           codesign: 'true'
           codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll'
 
@@ -173,6 +176,7 @@ jobs:
           name: Edge Agent
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: $(version)
           codesign: 'true'
 
       # Edge Hub
@@ -181,6 +185,7 @@ jobs:
           name: Edge Hub
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
+          version: $(version)
           codesign: 'true'
 
       # Simulated Temperature Sensor
@@ -189,6 +194,7 @@ jobs:
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
+          version: $(version)
           codesign: 'true'
           codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll'
 

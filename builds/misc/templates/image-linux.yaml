@@ -3,7 +3,7 @@ parameters:
   imageName: ''
   namespace: $(namespace)
   project: ''
-  version: $(version)
+  version: $(Build.BuildNumber)
   codesign: 'false'
   codesignPattern: 'Microsoft.Azure.Devices.Edge.*.dll'
 
