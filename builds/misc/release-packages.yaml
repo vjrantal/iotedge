@@ -1,0 +1,228 @@
+trigger: none
+pr: none
+variables:
+  REVISION: '1'
+jobs:
+
+################################################################################
+  - job: ubuntu_amd64
+################################################################################
+    displayName: Ubuntu - amd64
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+      - script: edgelet/build/linux/install.sh
+        displayName: Install Rust
+      - task: CMake@1
+        displayName: Setup libiothsm
+        inputs:
+          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+          cmakeArgs: '-DBUILD_SHARED=ON -Drun_unittests=ON -Duse_emulator=OFF -DCMAKE_BUILD_TYPE=Release -DCPACK_PACKAGE_VERSION=$(VERSION) -DCPACK_DEBIAN_PACKAGE_RELEASE=$(REVISION)  ..'
+      - script: make package 
+        displayName: 'Make iothsm package'
+        workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+      - script: make deb DPKGFLAGS="-b -us -uc -i"
+        workingDirectory: edgelet
+        displayName: Edgelet Package
+      - task: CopyFiles@2
+        displayName: Copy libiothsm-std to Artifact Staging
+        inputs:
+          SourceFolder: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: Copy Files to Artifact Staging
+        inputs:
+          SourceFolder: edgelet/target/release
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifacts
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-amd64'
+        condition: succeededOrFailed()
+
+################################################################################
+  - job: test_ubuntu_amd64
+################################################################################
+    displayName: Install deb packages
+    dependsOn: ubuntu_amd64
+    pool:
+      vmImage: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download Build Artifacts'
+      inputs:
+        artifactName: 'iotedged-ubuntu-amd64'
+    - bash: |
+      # Ensure docker group is created
+      if ! getent group iotedge >/dev/null; then
+          addgroup --system docker
+      fi
+      
+      sudo docker --version
+      sudo apt-get --yes install $(System.ArtifactsDirectory)/iotedged-amd64/*.deb
+      displayName: 'Install libiothsm-std and iotedge'
+
+################################################################################
+  - job: ubuntu_arm32v7
+################################################################################
+    displayName: Ubuntu - arm32v7
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+      - bash: |
+          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+        displayName: Set Version
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+      - script: edgelet/build/linux/install.sh --package-arm
+        displayName: Install Rust
+      - bash: 'cargo install --git https://github.com/myagley/cross.git --branch set-path'
+        displayName: 'Install cross (fork with docker fix)'
+      - bash: 'make deb CARGO=cross CARGOFLAGS="--target armv7-unknown-linux-gnueabihf" TARGET=target/armv7-unknown-linux-gnueabihf/release DPKGFLAGS="-b -us -uc -i --host-arch armhf"'
+        workingDirectory: edgelet
+        displayName: 'Edgelet package (armhf)'
+      - script: edgelet/build/linux/debian/arm32v7/package-libiothsm.sh 
+        displayName: libhsm
+      - task: CopyFiles@2
+        displayName: 'Copy Files to Artifact Staging'
+        inputs:
+          SourceFolder: 'edgelet/target/armv7-unknown-linux-gnueabihf/release'
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: 'Copy Files to Artifact Staging'
+        inputs:
+          SourceFolder: edgelet/target/hsm/build
+          Contents: '*.deb'
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-ubuntu-armhf'
+        condition: succeededOrFailed()
+
+################################################################################
+  - job: linux
+################################################################################
+    displayName: Linux
+    pool:
+      vmImage: 'ubuntu-16.04'
+    strategy:
+      matrix:
+        Centos75-amd64:
+          arch: amd64
+          os: centos
+          target.iotedged: edgelet/target/release/rpmbuild/RPMS/x86_64
+          target.libiothsm: edgelet/target/hsm/build/amd64
+        Centos75-arm32v7:
+          arch: arm32v7
+          os: centos
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release/rpmbuild/RPMS/armv7hl
+          target.libiothsm: edgelet/target/hsm/build/arm32v7
+    steps:
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+      - script: edgelet/build/linux/install.sh
+        displayName: Install Rust
+      - script: edgelet/build/linux/$(os)/$(arch)/package-libiothsm.sh
+        displayName: libiothsm package
+      - script: edgelet/build/linux/$(os)/$(arch)/package-iotedged.sh
+        displayName: iotedged package
+      - task: CopyFiles@2
+        displayName: Copy libiothsm Files to Artifact Staging
+        inputs:
+          SourceFolder: $(target.libiothsm)
+          Contents: |
+            *.deb
+            *.rpm
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: Copy iotedged Files to Artifact Staging
+        inputs:
+          SourceFolder: $(target.iotedged)
+          Contents: |
+            *.deb
+            *.rpm
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifacts
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-$(os)-$(arch)'
+        condition: succeededOrFailed()
+
+################################################################################
+  - job: windows_amd64
+################################################################################
+    displayName: Windows amd64
+    pool:
+      vmImage: 'vs2017-win2016'
+    steps:
+      - powershell: edgelet/build/windows/install.ps1
+        displayName: Install Rust
+      - powershell: edgelet/build/windows/build.ps1 -Release
+        displayName: Build
+      - task: CMake@1
+        displayName: 'Setup libiothsm'
+        inputs:
+          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+          cmakeArgs: '-G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -Duse_emulator=OFF ..'
+      - task: CMake@1
+        displayName: 'Build libiothsm'
+        inputs:
+          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+          cmakeArgs: '--build . --config Release'
+      - task: CopyFiles@2
+        displayName: 'Copy iotedged to Artifact Staging'
+        inputs:
+          SourceFolder: edgelet/target/release
+          Contents: |
+            *.exe
+            *.pdb
+            *.dll
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: 'Copy libiothsm to Artifact Staging'
+        inputs:
+          SourceFolder: 'edgelet/hsm-sys/azure-iot-hsm-c/build/Release'
+          Contents: |
+            *.dll
+            *.pdb
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: CopyFiles@2
+        displayName: 'Copy legal docs to Artifact Staging'
+        inputs:
+          SourceFolder: edgelet/contrib/docs
+          TargetFolder: '$(build.artifactstagingdirectory)/LICENSE'
+      - task: CopyFiles@2
+        displayName: 'Copy config to Artifact Staging'
+        inputs:
+          SourceFolder: edgelet/contrib/config/windows
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: 'ESRP CodeSigning'
+        inputs:
+          ConnectedServiceName: 'Azure IoT Edge Code Sign'
+          FolderPath: '$(build.artifactstagingdirectory)'
+          Pattern: 'iothsm.dll,*.exe'
+          CertificateId: 400
+          OpusName: 'Azure IoT Edge'
+          OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
+          SessionTimeout: 20
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: iotedged-windows'
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-windows'
