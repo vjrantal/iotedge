@@ -66,13 +66,13 @@ jobs:
         artifactName: 'iotedged-ubuntu-amd64'
 
     - bash: |
-      # Ensure docker group is created
-      if ! getent group iotedge >/dev/null; then
-          addgroup --system docker
-      fi
-      
-      sudo docker --version
-      sudo apt-get --yes install $(System.ArtifactsDirectory)/iotedged-amd64/*.deb
+        # Ensure docker group is created
+        if ! getent group iotedge >/dev/null; then
+            addgroup --system docker
+        fi
+        
+        sudo docker --version
+        sudo apt-get --yes install $(System.ArtifactsDirectory)/iotedged-amd64/*.deb
       displayName: 'Install libiothsm-std and iotedge'
 
 ################################################################################
@@ -84,12 +84,6 @@ jobs:
     steps:
       - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
         displayName: Modify path
-
-      - bash: |
-          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
-          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
-        displayName: Set Version
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
