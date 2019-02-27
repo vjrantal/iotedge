@@ -17,5 +17,8 @@ fi
 CERTS_DIR=/certs
 EXPIRATION=$(date +"%Y-%m-%dT%H:%M:%SZ" -d@"$(( `date +%s`+90*24*60*60))")
 
+
 mkdir -p ${CERTS_DIR}
+echo "exec /usr/bin/edgehub-proxy cert-server --common-name "${IOTEDGE_GATEWAYHOSTNAME}" --expiration "${EXPIRATION}" --combined "${CERTS_DIR}/iotedge.pem"  -- $@"
+
 exec /usr/bin/edgehub-proxy cert-server --common-name "${IOTEDGE_GATEWAYHOSTNAME}" --expiration "${EXPIRATION}" --combined "${CERTS_DIR}/iotedge.pem"  -- "$@"

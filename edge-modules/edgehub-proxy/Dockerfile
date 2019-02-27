@@ -6,7 +6,11 @@ RUN mkdir -p /run/haproxy
 
 COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
-EXPOSE 8883 5671 443
+COPY iotedge.pem /certs/iotedge.pem
+
+ENV USE_PROVIDED_CERT=true
+
+EXPOSE 8899
 
 COPY docker-entrypoint.sh /
 COPY target/x86_64-unknown-linux-musl/release/edgehub-proxy /usr/bin

@@ -20,6 +20,7 @@ mod logging;
 
 use std::fs;
 use std::process;
+use std::env;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use edgelet_http::UrlConnector;
@@ -171,22 +172,24 @@ fn run() -> Result<(), Error> {
         let response = tokio_runtime.block_on(request)?;
         info!("Retrieved server certificate.");
 
-        if let Some(crt_path) = args.value_of("crt file") {
-            fs::write(crt_path, response.certificate())?;
-        }
-
-        if let Some(key_path) = args.value_of("key file") {
-            if let Some(bytes) = response.private_key().bytes() {
-                fs::write(key_path, bytes)?;
+        if env::var("USE_PROVIDED_CERT").is_err() {
+            if let Some(crt_path) = args.value_of("crt file") {
+                fs::write(crt_path, response.certificate())?;
             }
-        }
 
-        if let Some(combined_path) = args.value_of("combined file") {
-            if let Some(bytes) = response.private_key().bytes() {
-                fs::write(
-                    combined_path,
-                    format!("{}{}", response.certificate(), bytes),
-                )?;
+            if let Some(key_path) = args.value_of("key file") {
+                if let Some(bytes) = response.private_key().bytes() {
+                    fs::write(key_path, bytes)?;
+                }
+            }
+
+            if let Some(combined_path) = args.value_of("combined file") {
+                if let Some(bytes) = response.private_key().bytes() {
+                    fs::write(
+                        combined_path,
+                        format!("{}{}", response.certificate(), bytes),
+                    )?;
+                }
             }
         }
     }

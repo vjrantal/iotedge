@@ -60,8 +60,15 @@ process_args "$@"
 ###############################################################################
 
 echo ${PROJECT_ROOT}
+if [[ ! -d ${PROJECT_ROOT} ]]; then
+    echo "Dir does not exist $PROJECT_ROOT"
+    exit 1
+fi
+
 docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/edgehub-proxy/Cargo.toml
+#docker.exe run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder ls /home/rust/src #/edge-modules/edgehub-proxy/
+#docker.exe run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/edgehub-proxy/Cargo.toml
 
 strip ${PROJECT_ROOT}/edge-modules/edgehub-proxy/target/x86_64-unknown-linux-musl/release/edgehub-proxy
 
-docker build -t ${IMAGE} ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
+docker.exe build -t ${IMAGE} ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
