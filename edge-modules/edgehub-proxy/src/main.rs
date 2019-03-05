@@ -135,44 +135,45 @@ fn run() -> Result<(), Error> {
                 .value_name("CMD"),
         ).get_matches();
 
-    let mut tokio_runtime = tokio::runtime::current_thread::Runtime::new()?;
-    let url = Url::parse(
-        matches
-            .value_of("host")
-            .expect("no value for required HOST"),
-    )?;
-    let client = client(&url)?;
+    if env::var("USE_PROVIDED_CERT").is_err() {
+        error!("We expected a certificate iotedge.pem>>>>>>>>>>>>>>>");
+        let mut tokio_runtime = tokio::runtime::current_thread::Runtime::new()?;
+        let url = Url::parse(
+            matches
+                .value_of("host")
+                .expect("no value for required HOST"),
+        )?;
+        let client = client(&url)?;
 
-    let api_version = matches
-        .value_of("apiversion")
-        .expect("no default value for API_VERSION");
-    let module = matches
-        .value_of("moduleid")
-        .expect("no value for required MODULEID");
-    let gen = matches
-        .value_of("genid")
-        .expect("no value for required GENID");
+        let api_version = matches
+            .value_of("apiversion")
+            .expect("no default value for API_VERSION");
+        let module = matches
+            .value_of("moduleid")
+            .expect("no value for required MODULEID");
+        let gen = matches
+            .value_of("genid")
+            .expect("no value for required GENID");
 
-    if let ("cert-server", Some(args)) = matches.subcommand() {
-        let common_name = args
-            .value_of("common name")
-            .expect("no value for required COMMON_NAME");
-        let expiration = args
-            .value_of("expiration")
-            .expect("no value for required EXPIRATION");
-        info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
+        if let ("cert-server", Some(args)) = matches.subcommand() {
+            let common_name = args
+                .value_of("common name")
+                .expect("no value for required COMMON_NAME");
+            let expiration = args
+                .value_of("expiration")
+                .expect("no value for required EXPIRATION");
+            info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
 
-        let cert_request =
-            ServerCertificateRequest::new(common_name.to_string(), expiration.to_string());
-        let request =
-            client
-                .workload_api()
-                .create_server_certificate(api_version, module, gen, cert_request);
+            let cert_request =
+                ServerCertificateRequest::new(common_name.to_string(), expiration.to_string());
+            let request =
+                client
+                    .workload_api()
+                    .create_server_certificate(api_version, module, gen, cert_request);
 
-        let response = tokio_runtime.block_on(request)?;
-        info!("Retrieved server certificate.");
+            let response = tokio_runtime.block_on(request)?;
+            info!("Retrieved server certificate.");
 
-        if env::var("USE_PROVIDED_CERT").is_err() {
             if let Some(crt_path) = args.value_of("crt file") {
                 fs::write(crt_path, response.certificate())?;
             }
