@@ -8,8 +8,6 @@ COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 COPY iotedge.pem /certs/iotedge.pem
 
-ENV USE_PROVIDED_CERT=true
-
 EXPOSE 8899
 
 COPY docker-entrypoint.sh /
